@@ -13,12 +13,9 @@ import (
 	"time"
 )
 
-/************ Test helpers: fake RoundTripper ************/
-
 type fakeRT struct {
 	mu      sync.Mutex
 	records []*http.Request
-	// handler decides response based on request
 	handler func(req *http.Request) *http.Response
 }
 
@@ -50,12 +47,7 @@ func newResp(status int, body any, headers map[string]string, req *http.Request)
 	}
 }
 
-/************ Tests ************/
-
 func TestWorkspaces_PaginationAndHeaders(t *testing.T) {
-	// Simulate two pages:
-	// page1 -> next_page.offset="abc"
-	// page2 -> no next_page
 	rt := &fakeRT{}
 	rt.handler = func(req *http.Request) *http.Response {
 		if got := req.Header.Get("Authorization"); !strings.HasPrefix(got, "Bearer ") {
@@ -72,7 +64,6 @@ func TestWorkspaces_PaginationAndHeaders(t *testing.T) {
 		q := req.URL.Query()
 		offset := q.Get("offset")
 		if offset == "" {
-			// first page
 			return newResp(200, ListResponse[Workspace]{
 				Data: []Workspace{
 					{Gid: "w1", Name: "Acme One"},
@@ -115,7 +106,6 @@ func TestWorkspaces_PaginationAndHeaders(t *testing.T) {
 		t.Fatalf("unexpected workspaces order/content: %+v", got)
 	}
 
-	// ensure we hit two requests with offset progression
 	if len(rt.records) != 2 {
 		t.Fatalf("want 2 HTTP calls, got %d", len(rt.records))
 	}
@@ -142,15 +132,13 @@ func TestUsers_HandlesRetryAfter429ThenSuccess(t *testing.T) {
 		attempts++
 		switch attempts {
 		case 1:
-			// first call rate limited; small Retry-After to keep test fast
 			return newResp(429, nil, map[string]string{"Retry-After": "1"}, req)
 		case 2:
-			// on retry, return one-page response
 			return newResp(200, ListResponse[User]{
 				Data: []User{{Gid: "u1", Name: "Alice", Email: strPtr("a@example.com")}},
 			}, nil, req)
 		default:
-			return newResp(500, nil, nil, req) // should not reach
+			return newResp(500, nil, nil, req)
 		}
 	}
 
@@ -171,13 +159,10 @@ func TestUsers_HandlesRetryAfter429ThenSuccess(t *testing.T) {
 		t.Fatalf("expected 2 attempts (429 then 200), got %d", attempts)
 	}
 
-	// Sanity: elapsed should be >= Retry-After (≈1s). Give slack for scheduler.
 	if elapsed < 900*time.Millisecond {
 		t.Fatalf("429 retry did not wait; elapsed=%v", elapsed)
 	}
 }
-
-/************ tiny helpers ************/
 
 func strPtr(s string) *string { return &s }
 

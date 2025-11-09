@@ -8,7 +8,6 @@ import (
 )
 
 var (
-	// allow letters, digits, dot, underscore, space, dash
 	invalidDirChars = regexp.MustCompile(`[^a-zA-Z0-9._ -]+`)
 	multiSpace      = regexp.MustCompile(`\s+`)
 )

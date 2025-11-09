@@ -14,9 +14,7 @@ import (
 func Run(ctx context.Context, interval time.Duration, cfg *config.Config) error {
 	cl := client.New(cfg.AsanaPAT, cfg.HTTPTimeout)
 
-	// immediate run
 	if err := oneRun(ctx, cl, cfg.OutDir); err != nil {
-		// log and continue; allow graceful stop on next select
 		fmt.Printf("[run] error: %v\n", err)
 	}
 
